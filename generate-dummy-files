@@ -1,0 +1,7 @@
+#!/bin/bash
+[ ! -d dist ] && mkdir dist
+echo $(date) > dist/index.txt
+
+echo "hidden" > dist/.hidden
+
+

@@ -1,0 +1,10 @@
+#!/bin/bash
+
+./generate-dummy-files
+
+
+./git-publish dist gh-pages origin 1
+
+
+
+

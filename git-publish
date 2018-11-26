@@ -1,0 +1,54 @@
+#!/bin/bash
+# Usage:
+# git-publish [dist(directory-to-be-reserved)] [publish/gh-pages/....(target-branch)] [origin/https://github.com/xxx.git(remote-url)] [1/else(push to remote after finished)]
+
+#TODO: worktree could be a better solution
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+MY_SHA1=$(git rev-parse HEAD)
+RESERVED_DIR=${1:-dist}
+TARGET_BRANCH=${2:-publish}
+REMOTE_URL=${3:-"$(pwd)/.git"}
+DO_PUSH=${4:-'1'}
+echo "current branch: "$CURRENT_BRANCH
+echo "publish to branch: "$TARGET_BRANCH
+echo "remote url: "$REMOTE_URL
+echo "it will push: "$DO_PUSH
+
+echo "fetching.."
+git fetch --all
+
+MY_TEMP_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'gip')
+
+echo "tmpdir: "$MY_TEMP_DIR
+
+cp -r $RESERVED_DIR $MY_TEMP_DIR 
+
+git branch -D $TARGET_BRANCH
+git checkout $TARGET_BRANCH || git checkout --orphan $TARGET_BRANCH 
+
+find . -path ./.git -prune -o -exec rm -rf {} \; 2> /dev/null
+
+rsync -avh $MY_TEMP_DIR/$RESERVED_DIR/ ./
+
+
+MSG="Released:"$MY_SHA1" in "$(date)
+
+git add . -A
+
+git commit -m "$MSG"
+
+
+
+if [[ $DO_PUSH == "1"  ]]; then
+    echo "push to $REMOTE_URL"
+    git push $REMOTE_URL --force $TARGET_BRANCH:$TARGET_BRANCH 
+fi
+
+git checkout $CURRENT_BRANCH
+# recover all
+git add .
+git stash
+
+rsync -avh $MY_TEMP_DIR/$RESERVED_DIR/ $RESERVED_DIR/
+
+[ -d $MY_TEMP_DIR ] && rm -rf $MY_TEMP_DIR
